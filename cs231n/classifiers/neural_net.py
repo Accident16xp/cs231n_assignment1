@@ -20,7 +20,7 @@ class TwoLayerNet(object):
 
     The outputs of the second fully-connected layer are the scores for each class.
     """
-
+    #初始化（模型，输入尺寸，隐藏层尺寸，输出尺寸，标准差）
     def __init__(self, input_size, hidden_size, output_size, std=1e-4):
         """
         Initialize the model. Weights are initialized to small random values and
@@ -42,7 +42,8 @@ class TwoLayerNet(object):
         self.params['b1'] = np.zeros(hidden_size)
         self.params['W2'] = std * np.random.randn(hidden_size, output_size)
         self.params['b2'] = np.zeros(output_size)
-
+    
+    #损失函数
     def loss(self, X, y=None, reg=0.0):
         """
         Compute the loss and gradients for a two layer fully connected neural
@@ -73,21 +74,25 @@ class TwoLayerNet(object):
 
         # Compute the forward pass
         scores = None
+        #打分函数
         #############################################################################
         # TODO: Perform the forward pass, computing the class scores for the input. #
         # Store the result in the scores variable, which should be an array of      #
+        
         # shape (N, C).                                                             #
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
-
+        Z1 = X.dot(W1)+b1
+        S1=np.maximum(0,Z1)
+        scores=S1.dot(W2)+b2
+        
+  
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+   
         # If the targets are not given then jump out, we're done
         if y is None:
             return scores
-
+        #计算损失
         # Compute the loss
         loss = None
         #############################################################################
@@ -98,10 +103,16 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        exp_scores=np.exp(scores)
+        probs=exp_scores/np.sum(exp_scores,axis=1,keepdims=True)
+        data_loss = -1.0/N*np.log(probs[np.arange(N),y]).sum()
+        reg_loss = 0.5*reg*(np.sum(W1*W1)+np.sum(W2*W2))
+        loss=data_loss+reg_loss
+        
+        
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        #后向传播
         # Backward pass: compute gradients
         grads = {}
         #############################################################################
@@ -111,12 +122,26 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        dscores=probs
+        dscores[np.arange(N),y]-=1
+        dscores/=N
+        grads['W2']=S1.T.dot(dscores)+reg*W2
+        grads['b2']=np.sum(dscores,axis=0)
+        
+        dhidden=dscores.dot(W2.T)
+        dhidden[S1<=0]=0
+        grads['W1']=X.T.dot(dhidden)+reg*W1
+        grads['b1']=np.sum(dhidden,axis =0)
+        
+        
+              
+        
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         return loss, grads
-
+    
+    #训练函数
     def train(self, X, y, X_val, y_val,
               learning_rate=1e-3, learning_rate_decay=0.95,
               reg=5e-6, num_iters=100,
@@ -156,7 +181,9 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            batch_inx=np.random.choice(num_train,batch_size)
+            X_batch=X[batch_inx,:]
+            y_batch=y[batch_inx]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -172,7 +199,10 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            self.params['W1']-=learning_rate*grads['W1']
+            self.params['b1']-=learning_rate*grads['b1']
+            self.params['W2']-=learning_rate*grads['W2']
+            self.params['b2']-=learning_rate*grads['b2']
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -218,7 +248,8 @@ class TwoLayerNet(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        scores=self.loss(X)
+        y_pred=np.argmax(scores,axis=1)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
