@@ -1,0 +1,89 @@
+import numpy as np
+from builtins import range
+from past.builtins import xrange
+from random import shuffle
+
+#定义一个损失函数，参量为权重矩阵W，输入X,输出/标签y，正则项系数 reg
+def svm_loss_naive(W,X,y,reg):
+    #X:N*D的输入矩阵，N个样本，D个特征
+    #W:D*C的权重矩阵，C对应的是类别数量
+    #y: N个分类结果
+    
+    
+    #定义一个W的梯度矩阵,并且初始化为0
+    dW = np.zeors(W.shape)
+    #定义损失loss
+    loss=0.0
+    #定义一些基本的数量：
+    num_classes = W.shape[1]
+    num_train = W.shape[0]
+    
+    #下面开始利用循环来计算损失函数
+    for i in range(num_train):
+        #依次遍历每一个样本，先打分
+        scores = X[i].dot(W)
+        cor_scores = scores[y[i]]
+        #依次遍历每个类别的相应得分
+        for j in range(num_classes):
+            if j==y[i]:
+                continue
+            #定义一个基本的得分
+            margin = scores[j] - cor_scores + 1
+            #1的作用是作为一个差值阈值
+            if margin > 0:
+                #误分类情形：
+                loss + = margin
+                #梯度变化：(dW是D*C的矩阵）
+                dW[:,y[i]]+=-X[i,:]
+                #此情形下偏导为Xi
+                dW[:,j]+=X[i]
+            #损失函数要求平均
+            loss / = num_train
+            dW / =num_train 
+            #再加上相应的L2正则项
+            loss + =0.5*reg*np.sum(W**2)
+            dW+=reg*W
+    return loss, dW
+
+#下面是一个向量化or矩阵形式的实现方法
+def svm_loss_vectorize(W,X,y,reg):
+    dW=np.zeros(W.shape)
+    loss=0.0
+    num_classes=W.shape[1]
+    num_train=W.shape[0]
+    scores=X.dot(W)
+    #计算损失margin,对应分类的评分，对应分类存在了y中
+    scores_cor=scores[np.arange(num_train),y]
+    scores_cor=np.reshape(scores_cor,(num_train,-1))
+    #计算整体的margin
+    margins=scores-scores_cor+1
+    
+    margins=np.maximum(0,margins)
+    #分类正确者的损失为0
+    margins[np.arange(numtrain),y]=0
+    loss=np.sum(margins)/num_train+0.5*reg*sum(W**2)
+    
+    
+    #下面进行梯度计算：
+    #先定义一个中间矩阵：coeff_mat,一个N*D的矩阵
+    #前面有margin矩阵，对应的是一个（N，）的数组
+    coeff_mat=np.zeros((num_train,num_classes))
+    #先考虑margin>0的情形
+    coeff_mat[margins>0]=1
+    coeff_mat[range(num_train),list(y)]=0
+    coeff_mat[range(num_train),list(y)]=-np.sum(coeff_mat,axis=1)
+    #利用链式法则求出W的梯度
+    dW=(X.T).dot(coeff_mat)
+    dW=dW/num_train + reg* W
+    
+    return loss,dW
+    
+    
+    
+
+
+          
+               
+                
+    
+    
